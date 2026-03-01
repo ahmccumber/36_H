@@ -21,17 +21,13 @@
     --thumb: #1a1917;
   }
 
-  html, body {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-  }
+  html, body { width: 100%; margin: 0; padding: 0; }
 
   body {
     font-family: 'IBM Plex Sans', sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 16px;
+    padding: 14px;
   }
 
   /* ---- Loading ---- */
@@ -54,7 +50,7 @@
     background: var(--text);
     color: var(--bg);
     border: none;
-    padding: 11px 16px;
+    padding: 12px 16px;
     cursor: pointer;
     transition: opacity 0.15s;
     touch-action: manipulation;
@@ -62,29 +58,22 @@
   button:hover { opacity: 0.75; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  /* ---- Main panel ---- */
+  /* ---- Layout ----
+     Desktop:  image full-width on top, sliders + scatter side-by-side below
+     Mobile:   everything stacked
+  */
   #main-panel { display: none; width: 100%; }
 
-  /* Desktop: two columns */
-  .layout {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 16px;
-    align-items: start;
-    width: 100%;
-  }
+  .layout { display: flex; flex-direction: column; gap: 12px; width: 100%; }
 
-  .left-col  { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-  .right-col { display: flex; flex-direction: column; gap: 0; min-width: 0; }
-
-  /* ---- Image ---- */
+  /* ---- Image (full width) ---- */
   .img-frame {
     background: #111;
-    aspect-ratio: 4/3;
+    width: 100%;
+    aspect-ratio: 16/9;   /* wider ratio makes better use of full width */
     overflow: hidden;
     border: 1px solid var(--border);
     position: relative;
-    width: 100%;
   }
   .img-frame img {
     width: 100%; height: 100%;
@@ -99,13 +88,22 @@
     font-size: 0.75rem;
     color: #888;
   }
-
   .img-counter {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.75rem;
     color: var(--muted);
     text-align: right;
   }
+
+  /* ---- Bottom row: sliders left, scatter right ---- */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .controls-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 
   /* ---- Sliders ---- */
   .sliders-block {
@@ -114,7 +112,7 @@
     padding: 16px 20px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 20px;
   }
   .slider-row { display: flex; flex-direction: column; gap: 10px; }
   .slider-labels {
@@ -123,16 +121,12 @@
     font-size: 0.75rem;
     color: var(--muted);
     font-family: 'IBM Plex Mono', monospace;
-    gap: 8px;
   }
-  .slider-labels span {
-    white-space: nowrap;
-  }
+  .slider-labels span { white-space: nowrap; }
 
   input[type=range] {
     -webkit-appearance: none;
-    width: 100%;
-    height: 4px;
+    width: 100%; height: 4px;
     background: var(--track);
     outline: none;
     cursor: pointer;
@@ -152,18 +146,17 @@
     cursor: grab;
   }
 
-  /* ---- Nav buttons ---- */
+  /* ---- Nav ---- */
   .nav-row { display: flex; gap: 8px; }
-  .nav-row button { flex: 1; padding: 12px 8px; font-size: 0.78rem; }
+  .nav-row button { flex: 1; padding: 13px 8px; }
   #btn-record { background: var(--accent); }
 
-  /* ---- Scatter (desktop right col) ---- */
-  .right-col {
+  /* ---- Scatter (right of sliders) ---- */
+  .scatter-col {
     background: var(--surface);
     border: 1px solid var(--border);
     padding: 14px;
-    position: sticky;
-    top: 16px;
+    min-width: 0;
   }
   .scatter-title {
     font-family: 'IBM Plex Mono', monospace;
@@ -178,7 +171,7 @@
   canvas#scatter { display: block; width: 100%; border: 1px solid var(--border); }
 
   .legend {
-    margin-top: 8px;
+    margin-top: 7px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.6rem;
     color: var(--muted);
@@ -209,11 +202,7 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.18);
     width: 130px;
   }
-  #thumb-tooltip img {
-    display: block;
-    width: 130px; height: 98px;
-    object-fit: cover;
-  }
+  #thumb-tooltip img { display: block; width: 130px; height: 98px; object-fit: cover; }
   #thumb-tooltip .thumb-num {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.6rem;
@@ -238,39 +227,25 @@
     color: var(--muted);
     line-height: 1.6;
   }
-  #done-panel .done-note {
-    font-size: 0.72rem;
-    margin-top: 10px;
-  }
+  #done-panel .done-note { font-size: 0.72rem; margin-top: 10px; }
 
   /* ============================================================
-     MOBILE — single column stack
+     MOBILE — fully stacked
   ============================================================ */
-  @media (max-width: 640px) {
+  @media (max-width: 580px) {
     body { padding: 10px; }
 
-    .layout {
+    .img-frame { aspect-ratio: 4/3; } /* revert to 4:3 on small screens */
+
+    .bottom-row {
       grid-template-columns: 1fr;
-      gap: 12px;
     }
 
-    /* On mobile, right col (scatter) goes below left col */
-    .right-col {
-      position: static;
-      /* Make scatter square and compact */
-    }
-
-    /* Larger touch targets for sliders */
-    input[type=range]::-webkit-slider-thumb {
-      width: 28px; height: 28px;
-    }
-    input[type=range]::-moz-range-thumb {
-      width: 28px; height: 28px;
-    }
+    input[type=range]::-webkit-slider-thumb { width: 28px; height: 28px; }
+    input[type=range]::-moz-range-thumb     { width: 28px; height: 28px; }
 
     .nav-row button { font-size: 0.72rem; padding: 14px 6px; }
-
-    .scatter-hint { display: none; } /* less critical on mobile */
+    .scatter-hint   { display: none; }
   }
 </style>
 </head>
@@ -281,69 +256,68 @@
 <div id="main-panel">
   <div class="layout">
 
-    <!-- LEFT: image + sliders + nav -->
-    <div class="left-col">
-      <div class="img-frame">
-        <img id="current-img" src="" alt="" style="opacity:0">
-        <div class="img-loading" id="img-loading">Loading…</div>
-      </div>
-      <div class="img-counter" id="counter"></div>
-      <div class="sliders-block">
-        <div class="slider-row">
-          <div class="slider-labels"><span>Unnatural</span><span>Natural</span></div>
-          <input type="range" id="slider-natural" min="0" max="100" value="50">
-        </div>
-        <div class="slider-row">
-          <div class="slider-labels"><span>Ugly</span><span>Beautiful</span></div>
-          <input type="range" id="slider-beauty" min="0" max="100" value="50">
-        </div>
-      </div>
-      <div class="nav-row">
-        <button id="btn-prev" disabled>← Back</button>
-        <button id="btn-record" id="btn-record">Record &amp; Next →</button>
-      </div>
+    <!-- Full-width image -->
+    <div class="img-frame">
+      <img id="current-img" src="" alt="" style="opacity:0">
+      <div class="img-loading" id="img-loading">Loading…</div>
     </div>
 
-    <!-- RIGHT: scatter plot -->
-    <div class="right-col">
-      <div class="scatter-title">Your ratings so far</div>
-      <div id="scatter-wrap">
-        <canvas id="scatter" width="320" height="308"></canvas>
-      </div>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:var(--dot)"></span>Rated</span>
-        <span><span class="legend-dot" style="background:var(--accent)"></span>Current</span>
-      </div>
-      <div class="scatter-hint">Tap a dot to revisit that image</div>
-    </div>
+    <div class="img-counter" id="counter"></div>
 
+    <!-- Bottom row -->
+    <div class="bottom-row">
+
+      <!-- Left: sliders + nav -->
+      <div class="controls-col">
+        <div class="sliders-block">
+          <div class="slider-row">
+            <div class="slider-labels"><span>Unnatural</span><span>Natural</span></div>
+            <input type="range" id="slider-natural" min="0" max="100" value="50">
+          </div>
+          <div class="slider-row">
+            <div class="slider-labels"><span>Ugly</span><span>Beautiful</span></div>
+            <input type="range" id="slider-beauty" min="0" max="100" value="50">
+          </div>
+        </div>
+        <div class="nav-row">
+          <button id="btn-prev" disabled>← Back</button>
+          <button id="btn-record">Record &amp; Next →</button>
+        </div>
+      </div>
+
+      <!-- Right: scatter -->
+      <div class="scatter-col">
+        <div class="scatter-title">Your ratings so far</div>
+        <div id="scatter-wrap">
+          <canvas id="scatter" width="300" height="290"></canvas>
+        </div>
+        <div class="legend">
+          <span><span class="legend-dot" style="background:var(--dot)"></span>Rated</span>
+          <span><span class="legend-dot" style="background:var(--accent)"></span>Current</span>
+        </div>
+        <div class="scatter-hint">Hover or click a dot to revisit</div>
+      </div>
+
+    </div>
   </div>
 </div>
 
-<!-- Thumbnail tooltip (hover on desktop) -->
 <div id="thumb-tooltip">
   <img id="thumb-img" src="" alt="">
   <div class="thumb-num" id="thumb-num"></div>
 </div>
 
-<!-- Done screen -->
 <div id="done-panel">
   <p>All images rated. Your responses have been recorded.</p>
   <p class="done-note">You may now proceed to the next page of the survey.</p>
 </div>
 
 <script>
-// =========================================================
-// CONFIG
-// =========================================================
 const GH_USER   = 'ahmccumber';
 const GH_REPO   = '36_H';
 const GH_PATH   = 'header_images';
 const GH_BRANCH = 'main';
 
-// =========================================================
-// Elements
-// =========================================================
 const loadingPanel = document.getElementById('loading-panel');
 const mainPanel    = document.getElementById('main-panel');
 const donePanel    = document.getElementById('done-panel');
@@ -366,23 +340,16 @@ let current    = 0;
 let frontier   = 0;
 let revisiting = false;
 
-// =========================================================
-// Boot: fetch image list
-// =========================================================
+// ---- Boot ----
 (async () => {
   const apiUrl = `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
   try {
     const res = await fetch(apiUrl);
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.message || `HTTP ${res.status}`);
-    }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || `HTTP ${res.status}`); }
     const files = await res.json();
     if (!Array.isArray(files)) throw new Error('Path is not a directory.');
     const imgExt = /\.(jpe?g|png|gif|webp|avif)$/i;
-    const imgFiles = files
-      .filter(f => f.type === 'file' && imgExt.test(f.name))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const imgFiles = files.filter(f => f.type === 'file' && imgExt.test(f.name)).sort((a,b) => a.name.localeCompare(b.name));
     if (!imgFiles.length) throw new Error('No images found in that folder.');
     images  = imgFiles.map(f => ({ name: f.name, url: f.download_url, thumb: null }));
     ratings = images.map(() => null);
@@ -395,19 +362,12 @@ let revisiting = false;
   }
 })();
 
-// =========================================================
-// Thumbnail pre-loader
-// =========================================================
 function ensureThumb(idx) {
   if (images[idx].thumb) return;
-  const t = new Image();
-  t.src = images[idx].url;
-  images[idx].thumb = t;
+  const t = new Image(); t.src = images[idx].url; images[idx].thumb = t;
 }
 
-// =========================================================
-// Survey flow
-// =========================================================
+// ---- Survey flow ----
 function loadImage(idx) {
   imgLoading.style.display = 'flex';
   imgLoading.textContent   = 'Loading…';
@@ -417,29 +377,17 @@ function loadImage(idx) {
   if (idx + 1 < images.length) ensureThumb(idx + 1);
 
   const tmp = new Image();
-  tmp.onload  = () => {
-    currentImg.src = tmp.src;
-    currentImg.style.opacity = '1';
-    imgLoading.style.display = 'none';
-  };
+  tmp.onload  = () => { currentImg.src = tmp.src; currentImg.style.opacity = '1'; imgLoading.style.display = 'none'; };
   tmp.onerror = () => { imgLoading.textContent = 'Failed to load image'; };
   tmp.src = images[idx].url;
 
   counterEl.textContent = `${idx + 1} / ${images.length}`;
   btnPrev.disabled = (idx === 0 && !revisiting);
-
-  if (revisiting) {
-    btnRecord.textContent = 'Update & Return';
-  } else if (idx === images.length - 1) {
-    btnRecord.textContent = 'Record & Finish';
-  } else {
-    btnRecord.textContent = 'Record & Next →';
-  }
+  btnRecord.textContent = revisiting ? 'Update & Return' : idx === images.length - 1 ? 'Record & Finish' : 'Record & Next →';
 
   const r = ratings[idx];
   sliderN.value = r ? r.natural : 50;
   sliderB.value = r ? r.beauty  : 50;
-
   drawScatter();
 }
 
@@ -450,164 +398,110 @@ btnRecord.addEventListener('click', () => {
   saveRating(current);
   drawScatter();
   if (revisiting) {
-    revisiting = false;
-    current = frontier;
-    loadImage(current);
+    revisiting = false; current = frontier; loadImage(current);
   } else if (current < images.length - 1) {
-    current++;
-    if (current > frontier) frontier = current;
-    loadImage(current);
+    current++; if (current > frontier) frontier = current; loadImage(current);
   } else {
     finishSurvey();
   }
 });
 
 btnPrev.addEventListener('click', () => {
-  if (revisiting) {
-    revisiting = false;
-    current = frontier;
-    loadImage(current);
-  } else if (current > 0) {
-    saveRating(current);
-    current--;
-    loadImage(current);
-  }
+  if (revisiting) { revisiting = false; current = frontier; loadImage(current); }
+  else if (current > 0) { saveRating(current); current--; loadImage(current); }
 });
 
 function saveRating(idx) {
   ratings[idx] = { natural: +sliderN.value, beauty: +sliderB.value, name: images[idx].name };
 }
 
-// =========================================================
-// Finish
-// =========================================================
+// ---- Finish ----
 function finishSurvey() {
   mainPanel.style.display = 'none';
   donePanel.style.display = 'block';
-
   const results = {};
-  ratings.forEach(r => {
-    if (r) results[r.name] = { natural: r.natural, beauty: r.beauty };
-  });
-
+  ratings.forEach(r => { if (r) results[r.name] = { natural: r.natural, beauty: r.beauty }; });
   const csvRows = ['image,natural,beauty'];
   ratings.forEach(r => { if (r) csvRows.push(`${r.name},${r.natural},${r.beauty}`); });
-  const csvString = csvRows.join('\n');
-
-  const payload = {
-    type:    'IMAGE_RATINGS_COMPLETE',
-    results: results,
-    csv:     csvString
-  };
-
+  const payload = { type: 'IMAGE_RATINGS_COMPLETE', results, csv: csvRows.join('\n') };
   window.parent.postMessage(payload, '*');
   try { sessionStorage.setItem('imageRatings', JSON.stringify(payload)); } catch(e) {}
 }
 
-// =========================================================
-// Scatter
-// =========================================================
-const PAD_LEFT   = 62;
-const PAD_RIGHT  = 10;
-const PAD_TOP    = 10;
-const PAD_BOTTOM = 28;
-
+// ---- Scatter ----
+const PAD_LEFT = 62, PAD_RIGHT = 10, PAD_TOP = 10, PAD_BOTTOM = 28;
 function toX(v) { return PAD_LEFT + (v / 100) * (canvas.width - PAD_LEFT - PAD_RIGHT); }
 function toY(v) { return (canvas.height - PAD_BOTTOM) - (v / 100) * (canvas.height - PAD_TOP - PAD_BOTTOM); }
 
 function drawScatter() {
   const W = canvas.width, H = canvas.height;
-  const plotL = PAD_LEFT, plotR = W - PAD_RIGHT;
-  const plotT = PAD_TOP,  plotB = H - PAD_BOTTOM;
+  const plotL = PAD_LEFT, plotR = W - PAD_RIGHT, plotT = PAD_TOP, plotB = H - PAD_BOTTOM;
   ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fafaf8'; ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = '#fafaf8';
-  ctx.fillRect(0, 0, W, H);
-
-  // Quarter-grid
-  ctx.strokeStyle = '#e8e4de';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([]);
-  [25, 75].forEach(v => {
+  // Quarter grid
+  ctx.strokeStyle = '#e8e4de'; ctx.lineWidth = 1; ctx.setLineDash([]);
+  [25,75].forEach(v => {
     ctx.beginPath(); ctx.moveTo(toX(v), plotT); ctx.lineTo(toX(v), plotB); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(plotL, toY(v)); ctx.lineTo(plotR, toY(v)); ctx.stroke();
   });
 
   // Dotted quadrant dividers
-  ctx.strokeStyle = '#b0aca6';
-  ctx.lineWidth = 1.2;
-  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = '#b0aca6'; ctx.lineWidth = 1.2; ctx.setLineDash([4,4]);
   ctx.beginPath(); ctx.moveTo(toX(50), plotT); ctx.lineTo(toX(50), plotB); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(plotL, toY(50)); ctx.lineTo(plotR, toY(50)); ctx.stroke();
   ctx.setLineDash([]);
 
   // Border
-  ctx.strokeStyle = '#b0aca6';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#b0aca6'; ctx.lineWidth = 1.5;
   ctx.strokeRect(plotL, plotT, plotR - plotL, plotB - plotT);
 
   // Axis labels
-  ctx.fillStyle = '#9a9690';
-  ctx.font = '10px IBM Plex Mono, monospace';
-  ctx.textAlign = 'left';  ctx.textBaseline = 'top';
-  ctx.fillText('Unnatural', plotL, plotB + 5);
-  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-  ctx.fillText('Natural',   plotR, plotB + 5);
-  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-  ctx.fillText('Ugly',      plotL - 5, plotB);
-  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-  ctx.fillText('Beautiful', plotL - 5, plotT);
+  ctx.fillStyle = '#9a9690'; ctx.font = '10px IBM Plex Mono, monospace';
+  ctx.textAlign = 'left';  ctx.textBaseline = 'top';    ctx.fillText('Unnatural', plotL, plotB + 5);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Natural',   plotR, plotB + 5);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Ugly',      plotL - 5, plotB);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Beautiful', plotL - 5, plotT);
 
   // Rated dots
   ratings.forEach((r, i) => {
     if (!r || i === current) return;
     const x = toX(r.natural), y = toY(r.beauty);
-    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(192,57,43,0.75)';
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(192,57,43,0.75)'; ctx.fill();
     ctx.fillStyle = 'rgba(26,25,23,0.45)';
-    ctx.font = '8px IBM Plex Mono, monospace';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '8px IBM Plex Mono, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(i + 1, x, y - 11);
   });
 
-  // Ghost of saved position
+  // Ghost of saved position for current
   const prev = ratings[current];
   if (prev) {
-    ctx.beginPath(); ctx.arc(toX(prev.natural), toY(prev.beauty), 7, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(42,92,170,0.3)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(toX(prev.natural), toY(prev.beauty), 7, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(42,92,170,0.3)'; ctx.lineWidth = 2; ctx.stroke();
   }
 
   // Live current dot
   const cx = toX(+sliderN.value), cy = toY(+sliderB.value);
-  ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(42,92,170,0.9)';
-  ctx.fill();
-  ctx.font = '8px IBM Plex Mono, monospace';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(42,92,170,0.9)';
-  ctx.fillText(current + 1, cx, cy - 12);
+  ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(42,92,170,0.9)'; ctx.fill();
+  ctx.font = '8px IBM Plex Mono, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(42,92,170,0.9)'; ctx.fillText(current + 1, cx, cy - 12);
 }
 
-// =========================================================
-// Scatter interaction
-// =========================================================
+// ---- Scatter interaction ----
 function hitTest(mx, my) {
-  // Use slightly larger radius on touch
-  const radius = window.matchMedia('(pointer: coarse)').matches ? 16 : 10;
+  const r = window.matchMedia('(pointer: coarse)').matches ? 16 : 10;
   let hit = null;
-  ratings.forEach((r, i) => {
-    if (!r) return;
-    if (Math.hypot(mx - toX(r.natural), my - toY(r.beauty)) < radius) hit = { r, i };
+  ratings.forEach((rating, i) => {
+    if (!rating) return;
+    if (Math.hypot(mx - toX(rating.natural), my - toY(rating.beauty)) < r) hit = { rating, i };
   });
   return hit;
 }
 
-// Mouse events (desktop)
 canvas.addEventListener('mousemove', e => {
-  if (window.matchMedia('(pointer: coarse)').matches) return; // skip on touch
+  if (window.matchMedia('(pointer: coarse)').matches) return;
   const rect = canvas.getBoundingClientRect();
   const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
   const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
@@ -618,37 +512,24 @@ canvas.addEventListener('mousemove', e => {
     const t = images[hit.i].thumb;
     thumbImg.src = (t && t.complete && t.naturalWidth) ? t.src : images[hit.i].url;
     thumbTip.style.display = 'block';
-    const tipW = 134, tipH = 120;
-    let tx = e.clientX + 14;
-    let ty = e.clientY - tipH - 8;
-    if (tx + tipW > window.innerWidth - 10) tx = e.clientX - tipW - 14;
+    let tx = e.clientX + 14, ty = e.clientY - 128;
+    if (tx + 134 > window.innerWidth - 10) tx = e.clientX - 144;
     if (ty < 8) ty = e.clientY + 16;
-    thumbTip.style.left = tx + 'px';
-    thumbTip.style.top  = ty + 'px';
+    thumbTip.style.left = tx + 'px'; thumbTip.style.top = ty + 'px';
   } else {
-    canvas.style.cursor = 'default';
-    thumbTip.style.display = 'none';
+    canvas.style.cursor = 'default'; thumbTip.style.display = 'none';
   }
 });
 
-canvas.addEventListener('mouseleave', () => {
-  thumbTip.style.display = 'none';
-  canvas.style.cursor = 'default';
-});
+canvas.addEventListener('mouseleave', () => { thumbTip.style.display = 'none'; canvas.style.cursor = 'default'; });
 
-// Click (desktop) / tap (mobile)
 canvas.addEventListener('click', e => {
   thumbTip.style.display = 'none';
   const rect = canvas.getBoundingClientRect();
   const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
   const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
   const hit = hitTest(mx, my);
-  if (hit) {
-    saveRating(current);
-    revisiting = true;
-    current = hit.i;
-    loadImage(current);
-  }
+  if (hit) { saveRating(current); revisiting = true; current = hit.i; loadImage(current); }
 });
 </script>
 </body>
