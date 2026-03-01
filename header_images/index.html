@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Rating</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f1ec;
+    --surface: #ffffff;
+    --border: #d0ccc4;
+    --text: #1a1917;
+    --muted: #7a7670;
+    --accent: #2a5caa;
+    --dot: #c0392b;
+    --track: #d0ccc4;
+    --thumb: #1a1917;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+
+  /* ---- Loading screen ---- */
+  #loading-panel {
+    margin: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  #loading-panel.err { color: #c0392b; }
+
+  button {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    padding: 11px 22px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.75; }
+  button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ---- Main ---- */
+  #main-panel { display: none; width: 100%; max-width: 1100px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .left-col { display: flex; flex-direction: column; gap: 14px; }
+
+  .img-frame {
+    background: #111;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .img-frame img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+    transition: opacity 0.2s;
+  }
+  .img-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: #555;
+  }
+
+  .img-counter {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .sliders-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .slider-row { display: flex; flex-direction: column; gap: 8px; }
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 2px;
+    background: var(--track);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: var(--thumb);
+    border-radius: 50%;
+    cursor: grab;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    background: var(--thumb);
+    border: none; border-radius: 50%;
+    cursor: grab;
+  }
+
+  .nav-row { display: flex; gap: 10px; }
+  .nav-row button { flex: 1; padding: 10px; }
+  #btn-record { background: var(--accent); }
+
+  /* ---- Scatter ---- */
+  .right-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    position: sticky;
+    top: 24px;
+  }
+  .scatter-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  #scatter-wrap { position: relative; margin-left: 8px; }
+  canvas#scatter { display: block; width: 100%; border: 1px solid var(--border); }
+
+  .legend {
+    margin-top: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    display: flex; gap: 14px;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+  .scatter-hint {
+    margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+
+  /* Thumbnail tooltip */
+  #thumb-tooltip {
+    position: fixed;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+    border: 2px solid var(--border);
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    width: 140px;
+  }
+  #thumb-tooltip img {
+    display: block;
+    width: 140px;
+    height: 105px;
+    object-fit: cover;
+  }
+  #thumb-tooltip .thumb-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    padding: 3px 6px;
+    text-align: center;
+  }
+
+  /* ---- Done ---- */
+  #done-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px;
+    max-width: 500px;
+    width: 100%;
+    margin: auto;
+    text-align: center;
+  }
+  #done-panel p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  #done-panel .done-note {
+    font-size: 0.75rem;
+    margin-top: 12px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-panel">Loading images…</div>
+
+<!-- MAIN -->
+<div id="main-panel">
+  <div class="layout">
+    <div class="left-col">
+      <div class="img-frame">
+        <img id="current-img" src="" alt="" style="opacity:0">
+        <div class="img-loading" id="img-loading">Loading…</div>
+      </div>
+      <div class="img-counter" id="counter"></div>
+      <div class="sliders-block">
+        <div class="slider-row">
+          <div class="slider-labels"><span>Unnatural</span><span>Natural</span></div>
+          <input type="range" id="slider-natural" min="0" max="100" value="50">
+        </div>
+        <div class="slider-row">
+          <div class="slider-labels"><span>Ugly</span><span>Beautiful</span></div>
+          <input type="range" id="slider-beauty" min="0" max="100" value="50">
+        </div>
+      </div>
+      <div class="nav-row">
+        <button id="btn-prev" disabled>← Back</button>
+        <button id="btn-record">Record &amp; Next →</button>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="scatter-title">Your ratings so far</div>
+      <div id="scatter-wrap">
+        <canvas id="scatter" width="320" height="308"></canvas>
+      </div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:var(--dot)"></span>Rated</span>
+        <span><span class="legend-dot" style="background:var(--accent)"></span>Current</span>
+      </div>
+      <div class="scatter-hint">Hover or click a dot to revisit that image</div>
+    </div>
+  </div>
+</div>
+
+<!-- Thumbnail tooltip -->
+<div id="thumb-tooltip">
+  <img id="thumb-img" src="" alt="">
+  <div class="thumb-num" id="thumb-num"></div>
+</div>
+
+<!-- DONE -->
+<div id="done-panel">
+  <p>All images rated. Your responses have been recorded.</p>
+  <p class="done-note">You may now proceed to the next page of the survey.</p>
+</div>
+
+<script>
+// =========================================================
+// CONFIG — repo details hard-coded
+// =========================================================
+const GH_USER   = 'ahmccumber';
+const GH_REPO   = '36_H';
+const GH_PATH   = 'header_images';
+const GH_BRANCH = 'main';
+
+// =========================================================
+// Elements
+// =========================================================
+const loadingPanel = document.getElementById('loading-panel');
+const mainPanel    = document.getElementById('main-panel');
+const donePanel    = document.getElementById('done-panel');
+const btnPrev      = document.getElementById('btn-prev');
+const btnRecord    = document.getElementById('btn-record');
+const currentImg   = document.getElementById('current-img');
+const imgLoading   = document.getElementById('img-loading');
+const counterEl    = document.getElementById('counter');
+const sliderN      = document.getElementById('slider-natural');
+const sliderB      = document.getElementById('slider-beauty');
+const canvas       = document.getElementById('scatter');
+const thumbTip     = document.getElementById('thumb-tooltip');
+const thumbImg     = document.getElementById('thumb-img');
+const thumbNum     = document.getElementById('thumb-num');
+const ctx          = canvas.getContext('2d');
+
+let images    = [];
+let ratings   = [];
+let current   = 0;
+let frontier  = 0;
+let revisiting = false;
+
+// =========================================================
+// Boot: fetch image list from GitHub
+// =========================================================
+(async () => {
+  const apiUrl = `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
+  try {
+    const res = await fetch(apiUrl);
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.message || `HTTP ${res.status}`);
+    }
+    const files = await res.json();
+    if (!Array.isArray(files)) throw new Error('Path is not a directory.');
+    const imgExt = /\.(jpe?g|png|gif|webp|avif)$/i;
+    const imgFiles = files
+      .filter(f => f.type === 'file' && imgExt.test(f.name))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    if (!imgFiles.length) throw new Error('No images found in that folder.');
+    images  = imgFiles.map(f => ({ name: f.name, url: f.download_url, thumb: null }));
+    ratings = images.map(() => null);
+    loadingPanel.style.display = 'none';
+    mainPanel.style.display    = 'block';
+    loadImage(0);
+  } catch (err) {
+    loadingPanel.textContent = `Error loading images: ${err.message}`;
+    loadingPanel.classList.add('err');
+  }
+})();
+
+// =========================================================
+// Thumbnail pre-loader
+// =========================================================
+function ensureThumb(idx) {
+  if (images[idx].thumb) return;
+  const t = new Image();
+  t.src = images[idx].url;
+  images[idx].thumb = t;
+}
+
+// =========================================================
+// Survey flow
+// =========================================================
+function loadImage(idx) {
+  imgLoading.style.display = 'flex';
+  imgLoading.textContent   = 'Loading…';
+  currentImg.style.opacity = '0';
+
+  ensureThumb(idx);
+  if (idx + 1 < images.length) ensureThumb(idx + 1);
+
+  const tmp = new Image();
+  tmp.onload  = () => { currentImg.src = tmp.src; currentImg.style.opacity = '1'; imgLoading.style.display = 'none'; };
+  tmp.onerror = () => { imgLoading.textContent = 'Failed to load image'; };
+  tmp.src = images[idx].url;
+
+  counterEl.textContent = `${idx + 1} / ${images.length}`;
+  btnPrev.disabled = (idx === 0 && !revisiting);
+
+  if (revisiting) {
+    btnRecord.textContent = 'Update & Return';
+  } else if (idx === images.length - 1) {
+    btnRecord.textContent = 'Record & Finish';
+  } else {
+    btnRecord.textContent = 'Record & Next →';
+  }
+
+  const r = ratings[idx];
+  sliderN.value = r ? r.natural : 50;
+  sliderB.value = r ? r.beauty  : 50;
+
+  drawScatter();
+}
+
+sliderN.addEventListener('input', drawScatter);
+sliderB.addEventListener('input', drawScatter);
+
+btnRecord.addEventListener('click', () => {
+  saveRating(current);
+  drawScatter();
+
+  if (revisiting) {
+    revisiting = false;
+    current = frontier;
+    loadImage(current);
+  } else if (current < images.length - 1) {
+    current++;
+    if (current > frontier) frontier = current;
+    loadImage(current);
+  } else {
+    finishSurvey();
+  }
+});
+
+btnPrev.addEventListener('click', () => {
+  if (revisiting) {
+    revisiting = false;
+    current = frontier;
+    loadImage(current);
+  } else if (current > 0) {
+    saveRating(current);
+    current--;
+    loadImage(current);
+  }
+});
+
+function saveRating(idx) {
+  ratings[idx] = { natural: +sliderN.value, beauty: +sliderB.value, name: images[idx].name };
+}
+
+// =========================================================
+// Finish: send data to Qualtrics via postMessage
+// =========================================================
+function finishSurvey() {
+  mainPanel.style.display = 'none';
+  donePanel.style.display = 'block';
+
+  // Build results object: { "filename.jpg": { natural: 72, beauty: 45 }, ... }
+  const results = {};
+  ratings.forEach(r => {
+    if (r) results[r.name] = { natural: r.natural, beauty: r.beauty };
+  });
+
+  // Also build a compact CSV string as an alternative payload
+  const csvRows = ['image,natural,beauty'];
+  ratings.forEach(r => { if (r) csvRows.push(`${r.name},${r.natural},${r.beauty}`); });
+  const csvString = csvRows.join('\n');
+
+  const payload = {
+    type:    'IMAGE_RATINGS_COMPLETE',
+    results: results,      // structured object
+    csv:     csvString     // flat CSV string (fits in a Qualtrics embedded data field)
+  };
+
+  // postMessage to parent Qualtrics frame
+  window.parent.postMessage(payload, '*');
+
+  // Also store in sessionStorage as a fallback
+  try { sessionStorage.setItem('imageRatings', JSON.stringify(payload)); } catch(e) {}
+}
+
+// =========================================================
+// Scatter plot
+// =========================================================
+const PAD_LEFT   = 62;
+const PAD_RIGHT  = 10;
+const PAD_TOP    = 10;
+const PAD_BOTTOM = 28;
+
+function toX(v) { return PAD_LEFT + (v / 100) * (canvas.width - PAD_LEFT - PAD_RIGHT); }
+function toY(v) { return (canvas.height - PAD_BOTTOM) - (v / 100) * (canvas.height - PAD_TOP - PAD_BOTTOM); }
+
+function drawScatter() {
+  const W = canvas.width, H = canvas.height;
+  const plotL = PAD_LEFT, plotR = W - PAD_RIGHT;
+  const plotT = PAD_TOP,  plotB = H - PAD_BOTTOM;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#fafaf8';
+  ctx.fillRect(0, 0, W, H);
+
+  // Quarter-grid lines (25, 75)
+  ctx.strokeStyle = '#e8e4de';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  [25, 75].forEach(v => {
+    ctx.beginPath(); ctx.moveTo(toX(v), plotT); ctx.lineTo(toX(v), plotB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(plotL, toY(v)); ctx.lineTo(plotR, toY(v)); ctx.stroke();
+  });
+
+  // Dotted quadrant dividers at 50
+  ctx.strokeStyle = '#b0aca6';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(toX(50), plotT); ctx.lineTo(toX(50), plotB); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(plotL, toY(50)); ctx.lineTo(plotR, toY(50)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Border
+  ctx.strokeStyle = '#b0aca6';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(plotL, plotT, plotR - plotL, plotB - plotT);
+
+  // Axis labels
+  ctx.fillStyle = '#9a9690';
+  ctx.font = '10px IBM Plex Mono, monospace';
+  ctx.textAlign = 'left';  ctx.textBaseline = 'top';
+  ctx.fillText('Unnatural', plotL, plotB + 6);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('Natural',   plotR, plotB + 6);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  ctx.fillText('Ugly',      plotL - 5, plotB);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('Beautiful', plotL - 5, plotT);
+
+  // Rated dots
+  ratings.forEach((r, i) => {
+    if (!r || i === current) return;
+    const x = toX(r.natural), y = toY(r.beauty);
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(192,57,43,0.75)';
+    ctx.fill();
+    ctx.fillStyle = 'rgba(26,25,23,0.45)';
+    ctx.font = '8px IBM Plex Mono, monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i + 1, x, y - 11);
+  });
+
+  // Ghost of saved position for current image
+  const prev = ratings[current];
+  if (prev) {
+    ctx.beginPath(); ctx.arc(toX(prev.natural), toY(prev.beauty), 7, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(42,92,170,0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Live current dot
+  const cx = toX(+sliderN.value), cy = toY(+sliderB.value);
+  ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(42,92,170,0.9)';
+  ctx.fill();
+  ctx.font = '8px IBM Plex Mono, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(42,92,170,0.9)';
+  ctx.fillText(current + 1, cx, cy - 12);
+}
+
+// =========================================================
+// Scatter interaction
+// =========================================================
+function hitTest(mx, my) {
+  let hit = null;
+  ratings.forEach((r, i) => {
+    if (!r) return;
+    if (Math.hypot(mx - toX(r.natural), my - toY(r.beauty)) < 10) hit = { r, i };
+  });
+  return hit;
+}
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
+  const hit = hitTest(mx, my);
+  if (hit) {
+    canvas.style.cursor = 'pointer';
+    thumbNum.textContent = `#${hit.i + 1}`;
+    const t = images[hit.i].thumb;
+    if (t && t.complete && t.naturalWidth) {
+      thumbImg.src = t.src;
+    } else {
+      ensureThumb(hit.i);
+      thumbImg.src = images[hit.i].url;
+    }
+    thumbTip.style.display = 'block';
+    const tipW = 144, tipH = 130;
+    let tx = e.clientX + 14;
+    let ty = e.clientY - tipH - 8;
+    if (tx + tipW > window.innerWidth - 10) tx = e.clientX - tipW - 14;
+    if (ty < 8) ty = e.clientY + 16;
+    thumbTip.style.left = tx + 'px';
+    thumbTip.style.top  = ty + 'px';
+  } else {
+    canvas.style.cursor = 'default';
+    thumbTip.style.display = 'none';
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  thumbTip.style.display = 'none';
+  canvas.style.cursor = 'default';
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
+  const hit = hitTest(mx, my);
+  if (hit) {
+    thumbTip.style.display = 'none';
+    saveRating(current);
+    revisiting = true;
+    current = hit.i;
+    loadImage(current);
+  }
+});
+</script>
+</body>
+</html>
