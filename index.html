@@ -351,7 +351,12 @@ let revisiting = false;
     const imgExt = /\.(jpe?g|png|gif|webp|avif)$/i;
     const imgFiles = files.filter(f => f.type === 'file' && imgExt.test(f.name)).sort((a,b) => a.name.localeCompare(b.name));
     if (!imgFiles.length) throw new Error('No images found in that folder.');
-    images  = imgFiles.map(f => ({ name: f.name, url: f.download_url, thumb: null }));
+    images = imgFiles.map(f => ({ name: f.name, url: f.download_url, thumb: null }));
+    // Fisher-Yates shuffle — random order, different for each respondent
+    for (let i = images.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [images[i], images[j]] = [images[j], images[i]];
+    }
     ratings = images.map(() => null);
     loadingPanel.style.display = 'none';
     mainPanel.style.display    = 'block';
