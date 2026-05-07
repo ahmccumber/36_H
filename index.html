@@ -275,7 +275,7 @@
             <input type="range" id="slider-natural" min="0" max="100" value="50">
           </div>
           <div class="slider-row">
-            <div class="slider-labels"><span>Not Appealing</span><span>Appealing</span></div>
+            <div class="slider-labels"><span>Not\nAppealing</span><span>Visually\nAppealing</span></div>
             <input type="range" id="slider-beauty" min="0" max="100" value="50">
           </div>
         </div>
@@ -465,8 +465,8 @@ function drawScatter() {
   ctx.fillStyle = '#9a9690'; ctx.font = '10px IBM Plex Mono, monospace';
   ctx.textAlign = 'left';  ctx.textBaseline = 'top';    ctx.fillText('Unnatural', plotL, plotB + 5);
   ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Natural',   plotR, plotB + 5);
-  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Not Appealing',      plotL - 5, plotB);
-  ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Visually Appealing', plotL - 5, plotT);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Not\nAppealing',      plotL - 5, plotB);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Visually\nAppealing', plotL - 5, plotT);
 
   // Rated dots
   ratings.forEach((r, i) => {
