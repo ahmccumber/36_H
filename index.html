@@ -95,6 +95,35 @@
     text-align: right;
   }
 
+  /* ---- Progress bar ---- */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  .progress-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    white-space: nowrap;
+    min-width: 5em;
+    text-align: right;
+  }
+
   /* ---- Bottom row: sliders left, scatter right ---- */
   .bottom-row {
     display: grid;
@@ -144,6 +173,23 @@
     background: var(--thumb);
     border: none; border-radius: 50%;
     cursor: grab;
+  }
+
+  /* ---- Slider interaction state ---- */
+  /* Sliders start dimmed; brighten once touched */
+  input[type=range].untouched {
+    opacity: 0.35;
+  }
+  input[type=range].untouched::-webkit-slider-thumb { background: var(--muted); }
+  input[type=range].untouched::-moz-range-thumb     { background: var(--muted); }
+
+  /* Prompt shown below sliders when record button is locked */
+  .slider-prompt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: #b05a00;
+    min-height: 1.2em;
+    transition: opacity 0.2s;
   }
 
   /* ---- Nav ---- */
@@ -262,7 +308,12 @@
       <div class="img-loading" id="img-loading">Loading…</div>
     </div>
 
-    <div class="img-counter" id="counter"></div>
+    <div class="progress-wrap">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-label" id="progress-label"></div>
+    </div>
 
     <!-- Bottom row -->
     <div class="bottom-row">
@@ -272,13 +323,14 @@
         <div class="sliders-block">
           <div class="slider-row">
             <div class="slider-labels"><span>Unnatural</span><span>Natural</span></div>
-            <input type="range" id="slider-natural" min="0" max="100" value="50">
+            <input type="range" id="slider-natural" min="0" max="100" value="50" class="untouched">
           </div>
           <div class="slider-row">
             <div class="slider-labels"><span>Ugly</span><span>Beautiful</span></div>
-            <input type="range" id="slider-beauty" min="0" max="100" value="50">
+            <input type="range" id="slider-beauty" min="0" max="100" value="50" class="untouched">
           </div>
         </div>
+        <div class="slider-prompt" id="slider-prompt"></div>
         <div class="nav-row">
           <button id="btn-prev" disabled>← Back</button>
           <button id="btn-record">Record &amp; Next →</button>
@@ -325,7 +377,8 @@ const btnPrev      = document.getElementById('btn-prev');
 const btnRecord    = document.getElementById('btn-record');
 const currentImg   = document.getElementById('current-img');
 const imgLoading   = document.getElementById('img-loading');
-const counterEl    = document.getElementById('counter');
+const progressFill  = document.getElementById('progress-fill');
+const progressLabel = document.getElementById('progress-label');
 const sliderN      = document.getElementById('slider-natural');
 const sliderB      = document.getElementById('slider-beauty');
 const canvas       = document.getElementById('scatter');
@@ -333,12 +386,34 @@ const thumbTip     = document.getElementById('thumb-tooltip');
 const thumbImg     = document.getElementById('thumb-img');
 const thumbNum     = document.getElementById('thumb-num');
 const ctx          = canvas.getContext('2d');
+const sliderPrompt = document.getElementById('slider-prompt');
 
-let images     = [];
-let ratings    = [];
-let current    = 0;
-let frontier   = 0;
-let revisiting = false;
+function resetTouched() {
+  touchedN = false;
+  touchedB = false;
+  sliderN.classList.add('untouched');
+  sliderB.classList.add('untouched');
+  updateRecordBtn();
+}
+
+function updateRecordBtn() {
+  const ready = touchedN && touchedB;
+  btnRecord.disabled = !ready;
+  sliderPrompt.textContent = ready ? '' :
+    !touchedN && !touchedB ? 'Please adjust both sliders before continuing.' :
+    !touchedN ? 'Please adjust the top slider.' :
+                'Please adjust the bottom slider.';
+}
+
+let images       = [];
+let ratings      = [];
+let current      = 0;
+let frontier     = 0;
+let revisiting   = false;
+let touchedN     = false;   // whether naturalness slider moved this image
+let touchedB     = false;   // whether beauty slider moved this image
+let imgShownAt   = 0;       // timestamp when current image was displayed
+let timings      = [];      // ms spent on each image before recording
 
 // ---- Boot ----
 (async () => {
@@ -386,7 +461,10 @@ function loadImage(idx) {
   tmp.onerror = () => { imgLoading.textContent = 'Failed to load image'; };
   tmp.src = images[idx].url;
 
-  counterEl.textContent = `${idx + 1} / ${images.length}`;
+  const rated = ratings.filter(r => r !== null).length;
+  const pct = images.length ? (rated / images.length) * 100 : 0;
+  progressFill.style.width  = pct + '%';
+  progressLabel.textContent = `${rated} / ${images.length}`;
   btnPrev.disabled = (idx === 0 && !revisiting);
   btnRecord.textContent = revisiting ? 'Update & Return' : idx === images.length - 1 ? 'Record & Finish' : 'Record & Next →';
 
@@ -394,10 +472,32 @@ function loadImage(idx) {
   sliderN.value = r ? r.natural : 50;
   sliderB.value = r ? r.beauty  : 50;
   drawScatter();
+
+  // If revisiting a previously rated image, treat sliders as already touched
+  if (r) {
+    touchedN = true; touchedB = true;
+    sliderN.classList.remove('untouched');
+    sliderB.classList.remove('untouched');
+    sliderPrompt.textContent = '';
+    btnRecord.disabled = false;
+  } else {
+    resetTouched();
+  }
+  imgShownAt = Date.now();
 }
 
-sliderN.addEventListener('input', drawScatter);
-sliderB.addEventListener('input', drawScatter);
+sliderN.addEventListener('input', () => {
+  touchedN = true;
+  sliderN.classList.remove('untouched');
+  updateRecordBtn();
+  drawScatter();
+});
+sliderB.addEventListener('input', () => {
+  touchedB = true;
+  sliderB.classList.remove('untouched');
+  updateRecordBtn();
+  drawScatter();
+});
 
 btnRecord.addEventListener('click', () => {
   saveRating(current);
@@ -417,7 +517,9 @@ btnPrev.addEventListener('click', () => {
 });
 
 function saveRating(idx) {
-  ratings[idx] = { natural: +sliderN.value, beauty: +sliderB.value, name: images[idx].name };
+  const elapsed = Date.now() - imgShownAt;
+  timings[idx]  = (timings[idx] === undefined) ? elapsed : timings[idx]; // keep first rating time
+  ratings[idx]  = { natural: +sliderN.value, beauty: +sliderB.value, name: images[idx].name };
 }
 
 // ---- Finish ----
@@ -426,8 +528,8 @@ function finishSurvey() {
   donePanel.style.display = 'block';
   const results = {};
   ratings.forEach(r => { if (r) results[r.name] = { natural: r.natural, beauty: r.beauty }; });
-  const csvRows = ['image,natural,beauty'];
-  ratings.forEach(r => { if (r) csvRows.push(`${r.name},${r.natural},${r.beauty}`); });
+  const csvRows = ['image,natural,beauty,response_ms'];
+  ratings.forEach((r, i) => { if (r) csvRows.push(`${r.name},${r.natural},${r.beauty},${timings[i] ?? ''}`); });
   const payload = { type: 'IMAGE_RATINGS_COMPLETE', results, csv: csvRows.join('\n') };
   window.parent.postMessage(payload, '*');
   try { sessionStorage.setItem('imageRatings', JSON.stringify(payload)); } catch(e) {}
