@@ -322,7 +322,7 @@
       <div class="controls-col">
         <div class="sliders-block">
           <div class="slider-row">
-            <div class="slider-labels"><span>Unnatural</span><span>Natural</span></div>
+            <div class="slider-labels"><span>Not Nature</span><span>Nature</span></div>
             <input type="range" id="slider-natural" min="0" max="100" value="50" class="untouched">
           </div>
           <div class="slider-row">
@@ -565,8 +565,8 @@ function drawScatter() {
 
   // Axis labels
   ctx.fillStyle = '#9a9690'; ctx.font = '10px IBM Plex Mono, monospace';
-  ctx.textAlign = 'left';  ctx.textBaseline = 'top';    ctx.fillText('Unnatural', plotL, plotB + 5);
-  ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Natural',   plotR, plotB + 5);
+  ctx.textAlign = 'left';  ctx.textBaseline = 'top';    ctx.fillText('Not Nature', plotL, plotB + 5);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Nature',   plotR, plotB + 5);
   ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Ugly',      plotL - 5, plotB);
   ctx.textAlign = 'right'; ctx.textBaseline = 'top';    ctx.fillText('Beautiful', plotL - 5, plotT);
 
